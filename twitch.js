@@ -14,9 +14,8 @@ function getAppAccessToken(clientId, clientSecret){
     axios.post('https://id.twitch.tv/oauth2/token?client_id='+clientId+'&client_secret='+clientSecret+'&grant_type=client_credentials&scope=analytics:read:games')
     .then((response) => {
         console.log('{$response.statusCode}'); //print http status
-        console.log(response.data);
         //check if response has access_token included, if so set it as the current token, else error and print full response
-        (response.hasOwnProperty('access_token')) ? (console.log("got access token"), currentToken = response.access_token) : console.log("error getting access token full response: \n", response);
+        (response.data.hasOwnProperty('access_token')) ? (console.log("got access token"), currentToken = response.data.access_token) : console.log("error getting access token full response: \n", response);
     }).catch((e) => {console.error(e)})
 }
 
