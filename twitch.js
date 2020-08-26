@@ -1,4 +1,3 @@
-
 const twitchClientId = "";
 const twitchClientSecret = "";
 
@@ -25,6 +24,18 @@ function refreshAppAccessToken(clientId, clientSecret, refreshToken){
         console.log('{$respone.statusCode}')
         console.log(response)    
     }).catch((e) => {console.error(e)})
+}
+
+// should create instance of express on localhost then open OAuth initial URL and wait for response
+function initCallback(){
+    //call webService and wait for response
+}
+
+function webService(){}
+
+function getUserAccessToken(clientId, clientSecret){
+    //check if userAccessToken is valid, then stop
+    //else initCallback
 }
 
 getAppAccessToken(twitchClientId, twitchClientSecret);
