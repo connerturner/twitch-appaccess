@@ -1,14 +1,16 @@
 const twitchClientId = "";
 const twitchClientSecret = "";
+const twitchRedirectUri = "https://localhost:8080";
 
 //token info
 var currentToken = ""; //store current token
 var currentRefreshToken = ""; //store refresh object associated with token
 
 const axios = require('axios'); //node http req library
+const crypto = require('crypto');
 
 // Use an instance of axios with defaults for clarity
-const twitchHttp = axious.create({
+const twitchHttp = axios.create({
     baseURL: 'https://id.twitch.tv'
 });
 
@@ -37,12 +39,21 @@ function initCallback(){
 }
 
 function webService(){}
-
-function getUserAccessToken(clientId, clientSecret){
+// Scope is an array of twitch OAuth scopes e.g ['user:edit','user:read:broadcast']
+// 
+function getUserAccessToken(clientId, clientSecret, scope){
     //check if userAccessToken is valid, then stop
     //else initCallback
+    
+    //build oauth code request
+    var oauthAuthorizeURI = "?client_id="+clientId+"&redirect_uri="+twitchRedirectUri+"&response_type=code&scope="+scope.join('+')
+    //get CSRF state/string
+    var csrfString = "&state="+crypto.randomBytes(64).toString('hex');
+
+    //DEBUG
+    console.log("Sending followin Authorize URI: \n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
 }
 
-getAppAccessToken(twitchClientId, twitchClientSecret);
-
+//getAppAccessToken(twitchClientId, twitchClientSecret);
+getUserAccessToken(twitchClientId, twitchClientSecret, ['user:edit', 'user:read:email', 'user:edit:follows'])
 
