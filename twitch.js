@@ -1,13 +1,15 @@
 const twitchClientId = "";
 const twitchClientSecret = "";
-const twitchRedirectUri = "https://localhost:8080";
+const twitchRedirectUri = "http://localhost:8080";
 
 //token info
 var currentToken = ""; //store current token
 var currentRefreshToken = ""; //store refresh object associated with token
 
 const axios = require('axios'); //node http req library
-const crypto = require('crypto');
+const crypto = require('crypto'); //for hash functions and random
+const http = require('http'); //for callback/redirectUri
+const url = require('url'); //parse url becuase i'm to lazy to regex
 
 // Use an instance of axios with defaults for clarity
 const twitchHttp = axios.create({
@@ -33,12 +35,28 @@ function refreshAppAccessToken(clientId, clientSecret, refreshToken){
     }).catch((e) => {console.error(e)})
 }
 
-// should create instance of express on localhost then open OAuth initial URL and wait for response
-function initCallback(){
-    //call webService and wait for response
+/**
+ * Create server instance listening on localhost/twitchRedirectUri
+ * 
+ * @param {string} twitchRedirectUri a fqdn with URI scheme that matches the one set in Twitch Dev Console
+ * @returns http.IncomingMessage parsed query parameters
+*/
+function callbackService(redirectUri){
+    try {
+        //create server with anonymous function callback, 
+        //will close after one request to it (hopefully the right one)
+        var queryParams = "";
+        var server = http.createServer((req, res) => {
+            queryParams = url.parse(req.url, true).query
+            res.end() 
+            server.close()
+        }).on('error', (e) => {throw err});
+        server.listen({port:8080, host:"localhost"}, () => {console.log("Listening: "+server.address())});
+    } catch (e) {
+        console.log("Error Creating web service: \n",e);
+    }
 }
 
-function webService(){}
 // Scope is an array of twitch OAuth scopes e.g ['user:edit','user:read:broadcast']
 // 
 function getUserAccessToken(clientId, clientSecret, scope){
@@ -48,10 +66,18 @@ function getUserAccessToken(clientId, clientSecret, scope){
     //build oauth code request
     var oauthAuthorizeURI = "?client_id="+clientId+"&redirect_uri="+twitchRedirectUri+"&response_type=code&scope="+scope.join('+')
     //get CSRF state/string
-    var csrfString = "&state="+crypto.randomBytes(64).toString('hex');
+    var csrfString = "&state="+crypto.randomBytes(32).toString('hex');
+    
+    console.log("Authenticate in Browser: \n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
 
-    //DEBUG
-    console.log("Sending followin Authorize URI: \n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
+    callbackService(twitchRedirectUri)
+
+    //
+    //await for code in callback
+    //
+    //send to code to get access token
+    //
+    //post to follow endpoint with user access token
 }
 
 //getAppAccessToken(twitchClientId, twitchClientSecret);
