@@ -76,7 +76,7 @@ function getUserAccessToken(clientId, clientSecret, scope){
 
     //create server with anonymous function callback, 
     //will close after one request to it (hopefully the right one)
-    var server = http.createServer().on('error', (e) => {console.error(e); this.close()});
+    var server = http.createServer().on('error', (e) => {console.error(e); server.close()});
 
     server.listen({port:8080, host:"localhost"}, () => {
         console.log("Listening: "+server.address().address+":"+ server.address().port);
