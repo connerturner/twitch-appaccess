@@ -1,10 +1,14 @@
-const twitchClientId = "";
-const twitchClientSecret = "";
+const twitchClientId = process.env.CLIENT_ID;
+const twitchClientSecret = process.env.CLIENT_SECRET;
 const twitchRedirectUri = "http://localhost:8080";
 
 //token info
 var currentToken = ""; //store current token
 var currentRefreshToken = ""; //store refresh object associated with token
+
+//userToken
+var userToken = ""; //current user access token
+var userRefreshToken; //current user refresh token
 
 const axios = require('axios'); //node http req library
 const crypto = require('crypto'); //for hash functions and random
@@ -35,49 +39,50 @@ function refreshAppAccessToken(clientId, clientSecret, refreshToken){
     }).catch((e) => {console.error(e)})
 }
 
-/**
- * Create server instance listening on localhost/twitchRedirectUri
- * 
- * @param {string} twitchRedirectUri a fqdn with URI scheme that matches the one set in Twitch Dev Console
- * @returns http.IncomingMessage parsed query parameters
-*/
-function callbackService(redirectUri){
-    try {
-        //create server with anonymous function callback, 
-        //will close after one request to it (hopefully the right one)
-        var queryParams = "";
-        var server = http.createServer((req, res) => {
-            queryParams = url.parse(req.url, true).query
-            res.end() 
-            server.close()
-        }).on('error', (e) => {throw err});
-        server.listen({port:8080, host:"localhost"}, () => {console.log("Listening: "+server.address())});
-    } catch (e) {
-        console.log("Error Creating web service: \n",e);
-    }
-}
+//
+// Get access token from a completed OAuth implicit flow.
+//
+function resolveToken()
 
 // Scope is an array of twitch OAuth scopes e.g ['user:edit','user:read:broadcast']
 // 
 function getUserAccessToken(clientId, clientSecret, scope){
     //check if userAccessToken is valid, then stop
-    //else initCallback
+    
     
     //build oauth code request
     var oauthAuthorizeURI = "?client_id="+clientId+"&redirect_uri="+twitchRedirectUri+"&response_type=code&scope="+scope.join('+')
     //get CSRF state/string
-    var csrfString = "&state="+crypto.randomBytes(32).toString('hex');
+    var csrfString = "&state="+crypto.randomBytes(32).toString('hex');    
+
+    //create server with anonymous function callback, 
+    //will close after one request to it (hopefully the right one)
+    var server = http.createServer().on('error', (e) => {console.error(e); this.close()});
+
+    server.listen({port:8080, host:"localhost"}, () => {
+        console.log("Listening: "+server.address().address+":"+ server.address().port);
+        console.log("\n Authenticate in Browser: \n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
+    });
     
-    console.log("Authenticate in Browser: \n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
+    server.on('request', async (req, res) => {
 
-    callbackService(twitchRedirectUri)
+        //parse code from the request, it in ?code=<30 chars>
+        query = url.parse(req.url, true).query
+        
+        //check state still exists, otherwise possible MiTM attack/poisoning
+        res.write("Callback Request Recieved with State: "+query.state)
 
-    //
-    //await for code in callback
-    //
-    //send to code to get access token
-    //
-    //post to follow endpoint with user access token
+        if(query.hasOwnProperty('code')){ 
+            res.write("Code Received: "+query.code)
+            res.end(await )
+        } else {
+            res.write("Error, Code not Received or auth request denied. Try again.")
+            res.end()
+            server.emit('error', new Error("Fatal. No Code recieved, cannot proceed."))
+        }
+        server.close() 
+    });
+
 }
 
 //getAppAccessToken(twitchClientId, twitchClientSecret);
