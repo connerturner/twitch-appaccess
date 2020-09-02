@@ -20,6 +20,11 @@ const twitchHttp = axios.create({
     baseURL: 'https://id.twitch.tv'
 });
 
+//ensure client details are set
+if(typeof twitchClientId == 'undefined' || typeof twitchClientSecret == 'undefined'){throw new Error("Client ID or Secret are not defined or the Envirpnment variables could not be found")}
+
+
+
 // Sends POST to /oauth2/token endpoint to get appaccess token
 // currently only on analytics:read:games scope
 function getAppAccessToken(clientId, clientSecret){
@@ -42,7 +47,21 @@ function refreshAppAccessToken(clientId, clientSecret, refreshToken){
 //
 // Get access token from a completed OAuth implicit flow.
 //
-function resolveToken()
+async function resolveToken(oauthCode,clientId,clientSecret) {
+    try {
+        let tokenResponse = await twitchHttp.post('/oauth2/token', {
+            params:{
+                client_id:clientId,
+                client_secret:clientSecret,
+                code:oauthCode,
+                grant_type:"authorization_code",
+                redirect_uri:twitchRedirectUri
+            }
+        })
+
+        return tokenResponse.data
+    } catch (e){console.error(e);}
+}
 
 // Scope is an array of twitch OAuth scopes e.g ['user:edit','user:read:broadcast']
 // 
@@ -61,7 +80,7 @@ function getUserAccessToken(clientId, clientSecret, scope){
 
     server.listen({port:8080, host:"localhost"}, () => {
         console.log("Listening: "+server.address().address+":"+ server.address().port);
-        console.log("\n Authenticate in Browser: \n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
+        console.log("Authenticate in Browser: \r\n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
     });
     
     server.on('request', async (req, res) => {
@@ -70,11 +89,12 @@ function getUserAccessToken(clientId, clientSecret, scope){
         query = url.parse(req.url, true).query
         
         //check state still exists, otherwise possible MiTM attack/poisoning
-        res.write("Callback Request Recieved with State: "+query.state)
+        res.write("Callback Request Recieved with State: "+query.state+"\n")
 
-        if(query.hasOwnProperty('code')){ 
+        
+        if(Object.prototype.hasOwnProperty.call(query, 'code')){ 
             res.write("Code Received: "+query.code)
-            res.end(await )
+            resolveToken(query.code, clientId, clientSecret).then((data) => {res.end(data)}).catch((e) => res.end(e))
         } else {
             res.write("Error, Code not Received or auth request denied. Try again.")
             res.end()
