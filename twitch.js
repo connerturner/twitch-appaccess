@@ -81,13 +81,11 @@ function getUserAccessToken(clientId, clientSecret, scope){
         //check state still exists, otherwise possible MiTM attack/poisoning
         res.write("Callback Request Recieved with State: "+query.state+"\n")
 
-        
-        if(Object.prototype.hasOwnProperty.call(query, 'code')){ 
-            res.write("Code Received: "+query.code)
-            resolveToken(query.code, clientId, clientSecret).then((data) => {res.end(data)}).catch((e) => res.end(e))
+        if(Object.prototype.hasOwnProperty.call(query, "code")){ 
+            res.write("Code Received: "+query.code+"\n")
+            await resolveToken(query.code, clientId, clientSecret).then((data) => {res.end(JSON.stringify(data))}).catch((e) => res.end(e.stack)) 
         } else {
-            res.write("Error, Code not Received or auth request denied. Try again.")
-            res.end()
+            res.end("Error, Code not Received or auth request denied. Try again.")
             server.emit('error', new Error("Fatal. No Code recieved, cannot proceed."))
         }
         server.close() 
