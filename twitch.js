@@ -19,6 +19,9 @@ const twitchHttp = axios.create({
 //ensure client details are set
 if(typeof twitchClientId == 'undefined' || typeof twitchClientSecret == 'undefined'){throw new Error("Client ID or Secret are not defined or the Envirpnment variables could not be found")}
 
+//
+// Post request to get a new token (refresh) that has expired, based on the existing oAuth details.
+//
 function refreshAccessToken(clientId, clientSecret, refreshToken){
     twitchHttp.post('/oauth2/token?grant_type=refresh_token&refresh_token='+refreshToken+'&client_id='+clientId+'&client_secret='+clientSecret)
     .then((response) =>{
@@ -32,7 +35,7 @@ function refreshAccessToken(clientId, clientSecret, refreshToken){
 //
 async function resolveToken(oauthCode,clientId,clientSecret) {
     try {
-        let tokenResponse = await twitchHttp.post('/oauth2/token', {
+        let tokenResponse = await twitchHttp.post('/oauth2/token', null, {
             params:{
                 client_id:clientId,
                 client_secret:clientSecret,
@@ -60,7 +63,8 @@ function getUserAccessToken(clientId, clientSecret, scope){
     //create server with anonymous function callback, 
     //will close after one request to it (hopefully the right one)
     var server = http.createServer().on('error', (e) => {console.error(e); server.close()});
-
+    
+    //TODO use the Twitch Redirect URI
     server.listen({port:8080, host:"localhost"}, () => {
         console.log("Listening: "+server.address().address+":"+ server.address().port);
         console.log("Authenticate in Browser: \r\n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
