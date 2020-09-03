@@ -2,10 +2,6 @@ const twitchClientId = process.env.CLIENT_ID;
 const twitchClientSecret = process.env.CLIENT_SECRET;
 const twitchRedirectUri = "http://localhost:8080";
 
-//token info
-var currentToken = ""; //store current token
-var currentRefreshToken = ""; //store refresh object associated with token
-
 //userToken
 var userToken = ""; //current user access token
 var userRefreshToken; //current user refresh token
@@ -22,19 +18,6 @@ const twitchHttp = axios.create({
 
 //ensure client details are set
 if(typeof twitchClientId == 'undefined' || typeof twitchClientSecret == 'undefined'){throw new Error("Client ID or Secret are not defined or the Envirpnment variables could not be found")}
-
-
-
-// Sends POST to /oauth2/token endpoint to get appaccess token
-// currently only on analytics:read:games scope
-function getAppAccessToken(clientId, clientSecret){
-    twitchHttp.post('/oauth2/token?client_id='+clientId+'&client_secret='+clientSecret+'&grant_type=client_credentials&scope=analytics:read:games')
-    .then((response) => {
-        console.log('{$response.statusCode}'); //print http status
-        //check if response has access_token included, if so set it as the current token, else error and print full response
-        (response.data.hasOwnProperty('access_token')) ? (console.log("got access token"), currentToken = response.data.access_token) : console.log("error getting access token full response: \n", response);
-    }).catch((e) => {console.error(e)})
-}
 
 function refreshAppAccessToken(clientId, clientSecret, refreshToken){
     twitchHttp.post('/oauth2/token?grant_type=refresh_token&refresh_token='+refreshToken+'&client_id='+clientId+'&client_secret='+clientSecret)
