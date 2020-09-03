@@ -19,7 +19,7 @@ const twitchHttp = axios.create({
 //ensure client details are set
 if(typeof twitchClientId == 'undefined' || typeof twitchClientSecret == 'undefined'){throw new Error("Client ID or Secret are not defined or the Envirpnment variables could not be found")}
 
-function refreshAppAccessToken(clientId, clientSecret, refreshToken){
+function refreshAccessToken(clientId, clientSecret, refreshToken){
     twitchHttp.post('/oauth2/token?grant_type=refresh_token&refresh_token='+refreshToken+'&client_id='+clientId+'&client_secret='+clientSecret)
     .then((response) =>{
         console.log('{$respone.statusCode}')
