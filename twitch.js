@@ -16,6 +16,9 @@ const twitchHttp = axios.create({
     baseURL: 'https://id.twitch.tv'
 });
 
+//add a handler for all errors through the twitch api
+twitchHttp.interceptors.response.use(response => response, error => throw error);
+
 //ensure client details are set
 if(typeof twitchClientId == 'undefined' || typeof twitchClientSecret == 'undefined'){throw new Error("Client ID or Secret are not defined or the Envirpnment variables could not be found")}
 
@@ -35,7 +38,7 @@ function refreshAccessToken(clientId, clientSecret, refreshToken){
 //
 async function resolveToken(oauthCode,clientId,clientSecret) {
     try {
-        let tokenResponse = await twitchHttp.post('/oauth2/token', null, {
+        const tokenResponse = await twitchHttp.post('/oauth2/token', null, {
             params:{
                 client_id:clientId,
                 client_secret:clientSecret,
@@ -43,8 +46,8 @@ async function resolveToken(oauthCode,clientId,clientSecret) {
                 grant_type:"authorization_code",
                 redirect_uri:twitchRedirectUri
             }
-        })
-
+        });
+        
         return tokenResponse.data
     } catch (e){console.error(e);}
 }
@@ -92,6 +95,5 @@ function getUserAccessToken(clientId, clientSecret, scope){
 
 }
 
-//getAppAccessToken(twitchClientId, twitchClientSecret);
 getUserAccessToken(twitchClientId, twitchClientSecret, ['user:edit', 'user:read:email', 'user:edit:follows'])
 
