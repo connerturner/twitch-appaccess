@@ -17,7 +17,7 @@ const twitchHttp = axios.create({
 });
 
 //add a handler for all errors through the twitch api
-twitchHttp.interceptors.response.use(response => response, error => throw error);
+twitchHttp.interceptors.response.use(response => response, error => { throw error });
 
 //ensure client details are set
 if(typeof twitchClientId == 'undefined' || typeof twitchClientSecret == 'undefined'){throw new Error("Client ID or Secret are not defined or the Envirpnment variables could not be found")}
