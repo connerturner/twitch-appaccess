@@ -3,8 +3,7 @@ const twitchClientSecret = process.env.CLIENT_SECRET;
 const twitchRedirectUri = "http://localhost:8080";
 
 //userToken
-var userToken = ""; //current user access token
-var userRefreshToken; //current user refresh token
+var userAccessToken = {accessToken:'', refreshToken:''};
 
 const axios = require('axios'); //node http req library
 const crypto = require('crypto'); //for hash functions and random
@@ -18,6 +17,12 @@ const twitchHttp = axios.create({
 
 //add a handler for all errors through the twitch api
 twitchHttp.interceptors.response.use(response => response, error => { throw error });
+
+//handle rejection dep warnings
+process.on('unhandledRejection', e => {
+    console.error(e.stack); //print the stack
+    process.exit(1); //halt
+});
 
 //ensure client details are set
 if(typeof twitchClientId == 'undefined' || typeof twitchClientSecret == 'undefined'){throw new Error("Client ID or Secret are not defined or the Envirpnment variables could not be found")}
@@ -61,7 +66,7 @@ function getUserAccessToken(clientId, clientSecret, scope){
     //build oauth code request
     var oauthAuthorizeURI = "?client_id="+clientId+"&redirect_uri="+twitchRedirectUri+"&response_type=code&scope="+scope.join('+')
     //get CSRF state/string
-    var csrfString = "&state="+crypto.randomBytes(32).toString('hex');    
+    var csrfString = crypto.randomBytes(32).toString('hex');    
 
     //create server with anonymous function callback, 
     //will close after one request to it (hopefully the right one)
@@ -70,7 +75,7 @@ function getUserAccessToken(clientId, clientSecret, scope){
     //TODO use the Twitch Redirect URI
     server.listen({port:8080, host:"localhost"}, () => {
         console.log("Listening: "+server.address().address+":"+ server.address().port);
-        console.log("Authenticate in Browser: \r\n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+csrfString);
+        console.log("Authenticate in Browser: \r\n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+"&state="+csrfString);
     });
     
     server.on('request', async (req, res) => {
@@ -78,20 +83,32 @@ function getUserAccessToken(clientId, clientSecret, scope){
         //parse code from the request, it in ?code=<30 chars>
         query = url.parse(req.url, true).query
         
-        //check state still exists, otherwise possible MiTM attack/poisoning
-        res.write("Callback Request Recieved with State: "+query.state+"\n")
-
-        if(Object.prototype.hasOwnProperty.call(query, "code")){ 
-            res.write("Code Received: "+query.code+"\n")
-            await resolveToken(query.code, clientId, clientSecret).then((data) => {res.end(JSON.stringify(data))}).catch((e) => res.end(e.stack)) 
+        //write what we got
+        res.write("Callback Request Recieved: "+JSON.stringify(query)+"\n")
+       
+        //check state, if altered then suspected CSRF
+        if(csrfString !== query.state){
+            res.end("CSRF are not matching, potential foul-play not continuing");
+            server.close();
+            process.exit(1);
         } else {
-            res.end("Error, Code not Received or auth request denied. Try again.")
-            server.emit('error', new Error("Fatal. No Code recieved, cannot proceed."))
+            res.write("CSRF Matches. \n");
         }
+
+        let token = {};
+        //did we get a code in the response?
+        if("code" in query && query.code.length === 30){
+            //we did, and it was 30 characters as expected
+            res.write("Got Code, and it is 30 characters, trying to resolve oAuthCode:\n");
+            //exchange it for an access token and output the accessToken object, or error.
+            resolveToken(query.code, clientId, clientSecret).then((tokenObject) => {(res.end(JSON.stringify(tokenObject)),token=tokenObject)}).catch(error => res.end(error.stack));
+        }
+
         server.close() 
+       
+     
     });
 
 }
-
 getUserAccessToken(twitchClientId, twitchClientSecret, ['user:edit', 'user:read:email', 'user:edit:follows'])
 
