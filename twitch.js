@@ -98,8 +98,8 @@ function getUserAccessToken(clientId, clientSecret, scope){
             res.write("Got Code, and it is 30 characters, trying to resolve oAuthCode:\n");
             //exchange it for an access token and output the accessToken object, or error.
             resolveToken(query.code, clientId, clientSecret)
-                .then((responsePromise) => res.end(responsePromise.data))
-                .catch((e) => (res.end("An Error Occured, Check the console."),console.log(e.stack)))
+                .then((responsePromise) => res.end(JSON.stringify(responsePromise.data)))
+                .catch((e) => (res.end("An Error Occured, Check the console."),console.error(e.stack)))
         }
 
         server.close() 
