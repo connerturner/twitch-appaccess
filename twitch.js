@@ -99,7 +99,7 @@ function getUserAccessToken(clientId, clientSecret, scope){
             //exchange it for an access token and output the accessToken object, or error.
             resolveToken(query.code, clientId, clientSecret)
                 .then((responsePromise) => res.end(responsePromise.data))
-                .catch((e) => res.end(e.stack))
+                .catch((e) => (res.end("An Error Occured, Check the console."),console.log(e.stack)))
         }
 
         server.close() 
