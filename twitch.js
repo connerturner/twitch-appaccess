@@ -41,9 +41,8 @@ function refreshAccessToken(clientId, clientSecret, refreshToken){
 //
 // Get access token from a completed OAuth implicit flow.
 //
-async function resolveToken(oauthCode,clientId,clientSecret) {
-    try {
-        const tokenResponse = await twitchHttp.post('/oauth2/token', null, {
+function resolveToken(oauthCode,clientId,clientSecret) {
+       return twitchHttp.post('/oauth2/token', null, {
             params:{
                 client_id:clientId,
                 client_secret:clientSecret,
@@ -52,9 +51,6 @@ async function resolveToken(oauthCode,clientId,clientSecret) {
                 redirect_uri:twitchRedirectUri
             }
         });
-        
-        return tokenResponse.data
-    } catch (e){console.error(e);}
 }
 
 // Scope is an array of twitch OAuth scopes e.g ['user:edit','user:read:broadcast']
@@ -78,7 +74,7 @@ function getUserAccessToken(clientId, clientSecret, scope){
         console.log("Authenticate in Browser: \r\n","https://id.twitch.tv/oauth2/authorize"+oauthAuthorizeURI+"&state="+csrfString);
     });
     
-    server.on('request', async (req, res) => {
+    server.on('request', (req, res) => {
 
         //parse code from the request, it in ?code=<30 chars>
         query = url.parse(req.url, true).query
@@ -101,12 +97,13 @@ function getUserAccessToken(clientId, clientSecret, scope){
             //we did, and it was 30 characters as expected
             res.write("Got Code, and it is 30 characters, trying to resolve oAuthCode:\n");
             //exchange it for an access token and output the accessToken object, or error.
-            resolveToken(query.code, clientId, clientSecret).then((tokenObject) => {(res.end(JSON.stringify(tokenObject)),token=tokenObject)}).catch(error => res.end(error.stack));
+            resolveToken(query.code, clientId, clientSecret)
+                .then((responsePromise) => res.end(responsePromise.data))
+                .catch((e) => res.end(e.stack))
         }
 
         server.close() 
-       
-     
+
     });
 
 }
